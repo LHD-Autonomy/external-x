@@ -78,6 +78,10 @@ Vector3 State::getPosition() const {
   return p_;
 }
 
+Vector3 State::getVelocity() const {
+  return v_;
+}
+
 Quaternion State::getOrientation() const {
   return q_;
 }

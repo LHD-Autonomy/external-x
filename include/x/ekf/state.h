@@ -102,6 +102,8 @@ namespace x
 
       Vector3 getPosition() const;
 
+      Vector3 getVelocity() const;
+
       Quaternion getOrientation() const;
 
       Matrix getPositionArray() const;
