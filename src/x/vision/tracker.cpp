@@ -529,6 +529,14 @@ void Tracker::appendNonNeighborFeatures(TiledImage& img,
     double x = std::round(candidate_features[i].getXDist()); // approximate pixel coords (integer)
     double y = std::round(candidate_features[i].getYDist()); // approximate pixel coords (integer)
 
+    if (x < 0 || x >= mask.cols || y < 0 || y >= mask.rows)
+    {
+      std::cout << "Warning: candidate feature at (" << x << ", " << y 
+                << ") is out of bounds for the mask of size (" << mask.cols
+                << ", " << mask.rows << "). Skipping this feature." << std::endl;
+      continue;
+    }
+
     // if the point is not blocked out
     if(mask.at<unsigned char>(y, x) == 0)
     {
@@ -536,12 +544,20 @@ void Tracker::appendNonNeighborFeatures(TiledImage& img,
       Feature& candidate_feature = candidate_features[i];
       img.setTileForFeature(candidate_feature);
       
-	  // add it to the features and update the bucket count
+	    // add it to the features and update the bucket count
       features.push_back(candidate_features[i]);
 
       //block out the surrounding area by setting the mask to 1
-      cv::Mat blocked_box = mask(cv::Rect(x - block_half_length_, y - block_half_length_,
-                                            2*block_half_length_ + 1, 2*block_half_length_ + 1));
+      // cv::Mat blocked_box = mask(cv::Rect(x - block_half_length_, y - block_half_length_,
+      //                                       2*block_half_length_ + 1, 2*block_half_length_ + 1));
+
+      int x0 = std::max(0, int(x - block_half_length_));
+      int y0 = std::max(0, int(y - block_half_length_));
+      int x1 = std::min(mask.cols - 1, int(x + block_half_length_));
+      int y1 = std::min(mask.rows - 1, int(y + block_half_length_));
+                                            
+      cv::Mat blocked_box = mask(cv::Rect(x0, y0, x1 - x0 + 1, y1 - y0 + 1));
+      
       blocked_box.setTo(cv::Scalar(1));
     }
   }
