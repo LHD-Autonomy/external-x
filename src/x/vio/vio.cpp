@@ -223,7 +223,7 @@ void VIO::initAtTime(double now) {
 
   // Initial IMU measurement (specific force, velocity)
   Vector3 a_m, w_m;
-  a_m << 0.0, 0.0, 9.81;
+  a_m << 0.0, 0.0,-9.81;
   w_m << 0.0, 0.0, 0.0;
 
   // Initial time cannot be 0, which may happen when using simulated Clock time
