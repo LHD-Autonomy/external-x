@@ -78,7 +78,7 @@ void VIO::setUp(const x::Params& params) {
   state_manager_ = state_manager;
 
   // Gravity - TODO(jeff) Read from params
-  Vector3 g(0.0, 0.0, -9.81);
+  Vector3 g(0.0, 0.0, params.g);
 
   // IMU noise
   x::ImuNoise imu_noise;

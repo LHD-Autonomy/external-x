@@ -48,6 +48,8 @@ namespace x
     int img_width;
     Vector3 p_ic;
     Quaternion q_ic;
+
+    double g = 9.81;
    
     /**
      * Standard deviation of feature measurement [in normalized coordinates]
