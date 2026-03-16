@@ -24,6 +24,8 @@
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+//#define LHES_XVIO_DEBUG
+
 using namespace x;
 
 Tracker::Tracker()
@@ -138,22 +140,30 @@ void Tracker::track(TiledImage& current_img,
                     previous_features_, current_features,
                     timestamp, frame_number);
 
+#ifdef LHES_XVIO_DEBUG
+    std::cout << "Frame number: " << frame_number << std::endl;
+    std::cout << "Previous features: " << previous_features_.size() << std::endl;
+    std::cout << "current features: " << current_features.size() << std::endl;
+#endif
     #ifdef TIMING
     clock4 = clock();
     #endif
 
     removeOverflowFeatures(previous_img_, current_img, previous_features_, current_features);
-
+#ifdef LHES_XVIO_DEBUG
+    std::cout << "Previous features after remove: " << previous_features_.size() << std::endl;
+    std::cout << "current features after remove: " << current_features.size() << std::endl;
+#endif
     // Refresh features if needed
     if(current_features.size() < n_feat_min_)
     {
-      #ifdef DEBUG
+#ifdef DEBUG
       std::cout << "Number of tracked features reduced to "
                 << current_features.size()
                 << std::endl;
       std::cout << "Triggering re-detection"
                 << std::endl;
-      #endif
+#endif
 
       // Detect and track new features outside of the neighborhood of
       // previously-tracked features
@@ -178,6 +188,10 @@ void Tracker::track(TiledImage& current_img,
       current_features.insert(current_features.end(),
                               current_features_new.begin(),
                               current_features_new.end());
+#ifdef LHES_XVIO_DEBUG
+      std::cout << "Previous features after redetection: " << previous_features_.size() << std::endl;
+      std::cout << "current features after redetection: " << current_features.size() << std::endl;
+#endif
     }
 
     #ifdef TIMING
@@ -212,7 +226,7 @@ void Tracker::track(TiledImage& current_img,
         pts2[i].y = current_features[i].getY();
       }
 
-      std::vector<uchar> mask;
+      std::vector<uchar> mask; //(pts1.size(), 1);
       cv::findFundamentalMat(pts1,
                              pts2,
                              outlier_method_,
@@ -226,7 +240,11 @@ void Tracker::track(TiledImage& current_img,
                            mask,
                            2000,
                            0.995);*/
-
+#ifdef LHES_XVIO_DEBUG
+      std::cout << "n matches: " << n_matches << std::endl;
+      std::cout << "mask size: " << mask.size() << std::endl;
+      std::cout << "n inliers: " << std::count(mask.begin(), mask.end(), 1) << std::endl;
+#endif
       FeatureList current_features_refined, previous_features_refined;
       for(size_t i = 0; i < mask.size(); ++i)
       {
@@ -239,6 +257,10 @@ void Tracker::track(TiledImage& current_img,
 
       std::swap(previous_features_refined, previous_features_);
       std::swap(current_features_refined, current_features);
+#ifdef LHES_XVIO_DEBUG
+      std::cout << "Previous features refined: " << previous_features_.size() << std::endl;
+      std::cout << "current features refined: " << current_features.size() << std::endl;
+#endif
     }
     #ifdef TIMING
     clock6 = clock();
@@ -271,6 +293,12 @@ void Tracker::track(TiledImage& current_img,
   previous_features_           = current_features;
   previous_timestamp_          = timestamp;
   previous_img_                = current_img;
+
+#ifdef LHES_XVIO_DEBUG
+  std::cout << "tracking end - previous features: " << previous_features_.size() << std::endl;
+  std::cout << "tracking end - previous timestamp: " << previous_timestamp_ << std::endl;
+  std::cout << "tracking end - previous image number: " << previous_img_.getFrameNumber() << std::endl;
+#endif
 
   // Exit the function if this is the first image
   if(img_id_ < 2)
@@ -312,8 +340,17 @@ bool Tracker::checkMatches()
     Match match(matches_[0]);
     if (match.previous.getTimestamp() < match.current.getTimestamp())
     {
+      std::cout << matches_.size() << " matches found" << std::endl;
       return true;
     }
+    else
+    {
+      std::cerr << "Error: matches are not in chronological order" << std::endl;
+    }
+  }
+  else
+  {
+    std::cout << "Warning: no matches found" << std::endl;
   }
   return false;
 }
@@ -592,6 +629,8 @@ void Tracker::removeOverflowFeatures(TiledImage& img1,
       //if the bucket is overflowing, remove the feature.
       features1.erase(features1.begin() + i-1);
       features2.erase(features2.begin() + i-1);
+      img1.decrementFeatureCountAtTile(feat2_row, feat2_col); // @lhes.antonio.digiacomo 
+      img2.decrementFeatureCountAtTile(feat2_row, feat2_col); // @lhes.antonio.digiacomo 
     }
   }
 }

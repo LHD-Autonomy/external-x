@@ -56,6 +56,7 @@ public:
 
   // Increment feature count for a specific tile
   void incrementFeatureCountAtTile(unsigned int row, unsigned int col);
+  void decrementFeatureCountAtTile(unsigned int row, unsigned int col);
   void resetFeatureCounts();
   void setTileForFeature(Feature& feature) const;
   // Plot one feature in the image

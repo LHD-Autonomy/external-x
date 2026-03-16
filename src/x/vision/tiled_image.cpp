@@ -159,6 +159,11 @@ void TiledImage::incrementFeatureCountAtTile(unsigned int row, unsigned int col)
   tiles_[row * n_tiles_w_ + col] += 1;
 }
 
+void TiledImage::decrementFeatureCountAtTile(unsigned int row, unsigned int col)
+{
+  tiles_[row * n_tiles_w_ + col] -= 1;
+}
+
 void TiledImage::resetFeatureCounts()
 {
   std::fill(tiles_.begin(), tiles_.end(), 0);
