@@ -219,10 +219,9 @@ void VioUpdater::constructUpdate(const State& state,
   Eigen::VectorXd r_lrf_diag;
 
   if (measurement_.range.timestamp > 0.1 && slam_trks_.size()) {
+    
     // 2D image coordinates of the LRF impact point on the ground
-    Feature lrf_img_pt;
-    lrf_img_pt.setXDist(320.5);
-    lrf_img_pt.setYDist(240.5);
+    Feature lrf_img_pt = measurement_.range.img_pt;
 
     // IDs of the SLAM features in the triangles surrounding the LRF
     const std::vector<int> tr_feat_ids = track_manager_.featureTriangleAtPoint(lrf_img_pt, feature_img_);
