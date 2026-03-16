@@ -92,6 +92,9 @@ namespace x {
       std::vector<Vector3>
         computeSLAMCartesianFeaturesForState(const State& state);
 
+      
+      const Camera& getCamera() const { return camera_; }
+
     private:
       /**
        * Extended Kalman filter estimation back end.
