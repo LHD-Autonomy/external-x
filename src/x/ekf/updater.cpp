@@ -15,6 +15,7 @@
  */
 
 #include <x/ekf/updater.h>
+#include <iostream>
 
 using namespace x;
 
@@ -56,6 +57,18 @@ void Updater::applyUpdate(State& state,
   Matrix& P = state.getCovarianceRef();
   const Matrix S = H * P * H.transpose() + R;
   const Matrix K = P * H.transpose() * S.inverse();
+
+  if (H.hasNaN())
+  {
+    std::cout << "Error: H has NaN entries." << std::endl;
+    return;
+  }
+
+  if (S.hasNaN()) {
+    std::cout << "Error: S has NaN entries." << std::endl;
+    return;
+  }
+
   Matrix correction = K * (res + H * correction_total) - correction_total;
 
   // Covariance update (skipped if this is not the last IEKF iteration)
