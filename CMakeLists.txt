@@ -14,7 +14,7 @@ set(UNIT_TESTS false) # Set true to enable unit tests
 
 cmake_minimum_required(VERSION 2.8.3)
 project(x)
-set (CMAKE_BUILD_TYPE Release)
+#set (CMAKE_BUILD_TYPE Release)
 
 # Set definitions
 if(DUAL_THREAD)

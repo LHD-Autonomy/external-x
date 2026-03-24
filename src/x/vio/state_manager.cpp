@@ -16,6 +16,7 @@
 
 #include <x/vio/state_manager.h>
 #include <x/vio/tools.h>
+#include <iostream>
 
 using namespace x;
 
@@ -178,9 +179,34 @@ void StateManager::initMsckfSlamFeatures(State& state,
 	Matrix P = state.getCovariance();
 
 	// Update feature state using Li (2012)
-	// Note: H2 is singular when camera is in perfect hovering
-	// (and MSCKF cannot be applied)
-	const Matrix H2_inv = init_mats.H2.inverse();
+  Matrix H2_inv;
+	const auto h2_lu = init_mats.H2.fullPivLu();
+  if (h2_lu.isInvertible())
+  {
+	  H2_inv = h2_lu.inverse();
+  }
+  else
+  {
+    std::cout << "H2 matrix is singular, using pseudo-inverse" << std::endl;
+    H2_inv = init_mats.H2.completeOrthogonalDecomposition().pseudoInverse();
+  }
+
+  if (H2_inv.norm() > 1000.0)
+  {
+    std::cout << "Too big H2_inv norm!" << std::endl;
+    //return;
+  }
+  else if (H2_inv.hasNaN())
+  {
+    std::cout << "H2_inv matrix has NaN" << std::endl;
+    //return;
+  }
+  else if (H2_inv.isZero())
+  {
+    std::cout << "H2_inv matrix is zero" << std::endl;
+    //return;
+  }
+  
 	const Matrix H2_inv_H1 = H2_inv * init_mats.H1;
 	const Matrix new_features = init_mats.features
       - H2_inv_H1 * correction + H2_inv * init_mats.r1;
@@ -190,6 +216,12 @@ void StateManager::initMsckfSlamFeatures(State& state,
   Matrix P_cross_new = - H2_inv_H1 * P;
   Matrix P_diag_new = H2_inv_H1 * P * H2_inv_H1.transpose()
       + var_img * H2_inv * H2_inv.transpose();
+
+  if (H2_inv.norm() > 1000.0)
+  {
+    std::cout << "Too big H2_inv norm!" << std::endl;
+    //return;
+  }
 
 	// Add to state and covariance
 	addFeatureStates(state, new_features, P_diag_new, P_cross_new);  
@@ -225,6 +257,23 @@ void StateManager::addFeatureStates(State& state,
 																	  const Matrix& cov,
 																	  const Matrix& cross)
 {
+  if (cov.isZero())
+  {
+    std::cout << "cov matrix is zero" << std::endl;
+  }
+  else if (cov.hasNaN())
+  {
+    std::cout << "cov matrix has NaN" << std::endl;
+  }
+  
+  if (cross.hasNaN())
+  {
+    std::cout << "cross matrix has NaN" << std::endl;
+  }
+  else if (cross.isZero())
+  {
+    std::cout << "cross matrix is zero" << std::endl;
+  }
 	// Determine number of new states
 	const size_t n_new_states = new_features.size();
 
@@ -233,6 +282,10 @@ void StateManager::addFeatureStates(State& state,
 	assert(n_features_ < n_features_max_);
   features.block(n_features_ * 3, 0, n_new_states, 1) = new_features;
   state.setFeatureArray(features);
+
+  std::cout << "updating P 2" << std::endl;
+  std::cout << "Cross norm: " << cross.norm() << std::endl;
+  std::cout << "Cov norm: " << cov.norm() << std::endl;
 
   // Augment covariance matrix
 	Matrix& P =state.getCovarianceRef();

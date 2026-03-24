@@ -265,6 +265,7 @@ void MsckfSlamUpdate::processOneTrack(const x::Track& track,
 	}
   else  // outlier
   {
+    outlier_track_idxs_.push_back(static_cast<unsigned int>(j));
 #ifdef VERBOSE
     outliers_.push_back(G_p_fj);
 #endif

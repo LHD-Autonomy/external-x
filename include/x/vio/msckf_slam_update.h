@@ -20,6 +20,7 @@
 #include <x/vio/update.h>
 #include <x/vio/types.h>
 #include <x/vision/triangulation.h>
+#include <vector>
 
 namespace x
 {
@@ -80,6 +81,12 @@ namespace x
        */
       const Vector3dArray& getOutliers() const { return outliers_; };
 
+      /**
+       * Returns indexes of MSCKF-SLAM tracks rejected by the Mahalanobis test.
+       */
+      const std::vector<unsigned int>& getOutlierTrackIdxs() const
+      { return outlier_track_idxs_; };
+
     private:
       
       /**
@@ -96,6 +103,11 @@ namespace x
        * 3D cartesian coordinates prior for MSCKF feature outliers
        */
       Vector3dArray outliers_;
+
+      /**
+       * Track indexes rejected by Mahalanobis gating.
+       */
+      std::vector<unsigned int> outlier_track_idxs_;
      
       /**
        * Process one feature track.

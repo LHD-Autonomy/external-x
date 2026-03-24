@@ -58,19 +58,41 @@ void Updater::applyUpdate(State& state,
   const Matrix S = H * P * H.transpose() + R;
   const Matrix K = P * H.transpose() * S.inverse();
 
+  if (S.hasNaN() || S.norm() > 1.e3)
+  {
+    std::cout << "Invalid S matrix" << std::endl;
+    return;
+  }
+
+  if (R.isZero())
+  {
+    std::cout << "R is zero!" << std::endl;
+  }
   if (H.hasNaN())
   {
     std::cout << "Error: H has NaN entries." << std::endl;
     return;
   }
 
-  if (S.hasNaN()) {
-    std::cout << "Error: S has NaN entries." << std::endl;
+  if (H.isZero())
+  {
+    std::cout << "Null H!" << std::endl;
+    return;
+  }
+
+  if (S.isZero()) {
+    std::cout << "Error: S is zero." << std::endl;
     return;
   }
 
   Matrix correction = K * (res + H * correction_total) - correction_total;
 
+  if (K.norm() > 1000)
+  {
+    std::cout << "norm of K: " << K.norm() << std::endl;
+  }
+
+  std::cout << "updating P" << std::endl;
   // Covariance update (skipped if this is not the last IEKF iteration)
   const size_t n = P.rows();
   if (cov_update) {
