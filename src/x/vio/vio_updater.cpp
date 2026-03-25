@@ -307,65 +307,21 @@ void VioUpdater::postUpdate(State& state, const Matrix& correction) {
   // MSCKF-SLAM feature init
   // Insert all new MSCKF-SLAM features in state and covariance
   if (new_msckf_slam_trks_.size()) {
+    const std::vector<unsigned int>& msckf_slam_outlier_idxs
+      = msckf_slam_.getOutlierTrackIdxs();
+    if (!msckf_slam_outlier_idxs.empty())
+      track_manager_.removeNewPersistentTracksAtIndexes(msckf_slam_outlier_idxs);
 
-    state_manager_.initMsckfSlamFeatures(state,
-      msckf_slam_.getInitMats(),
-      correction,
-      sigma_img_);
-
-    // const std::vector<unsigned int>& msckf_slam_outlier_idxs
-    //   = msckf_slam_.getOutlierTrackIdxs();
-    // if (!msckf_slam_outlier_idxs.empty())
-    //   track_manager_.removeNewPersistentTracksAtIndexes(msckf_slam_outlier_idxs);
-
-    // const size_t n_trks = new_msckf_slam_trks_.size();
-    // const size_t n_out = msckf_slam_outlier_idxs.size();
-    // const size_t n_in = n_trks - n_out;
-    // const MsckfSlamMatrices& init_mats = msckf_slam_.getInitMats();
-    // if (n_in > 0) {
-    //   if (n_out == 0) {
-    //     state_manager_.initMsckfSlamFeatures(state,
-    //                                          init_mats,
-    //                                          correction,
-    //                                          sigma_img_);
-    //   } else {
-    //     const size_t rows = n_in * 3;
-    //     const size_t cols = init_mats.H1.cols();
-    //     MsckfSlamMatrices filtered;
-    //     filtered.H1 = Matrix::Zero(rows, cols);
-    //     filtered.H2 = Matrix::Zero(rows, rows);
-    //     filtered.r1 = Matrix::Zero(rows, 1);
-    //     filtered.features = Matrix::Zero(rows, 1);
-
-    //     std::vector<char> is_outlier(n_trks, 0);
-    //     for (size_t i = 0; i < msckf_slam_outlier_idxs.size(); ++i) {
-    //       const unsigned int idx = msckf_slam_outlier_idxs[i];
-    //       if (idx < n_trks)
-    //         is_outlier[idx] = 1;
-    //     }
-
-    //     size_t dst_row = 0;
-    //     for (size_t i = 0; i < n_trks; ++i) {
-    //       if (is_outlier[i])
-    //         continue;
-    //       const size_t src_row = i * 3;
-    //       filtered.H1.block(dst_row, 0, 3, cols)
-    //         = init_mats.H1.block(src_row, 0, 3, cols);
-    //       filtered.r1.block(dst_row, 0, 3, 1)
-    //         = init_mats.r1.block(src_row, 0, 3, 1);
-    //       filtered.features.block(dst_row, 0, 3, 1)
-    //         = init_mats.features.block(src_row, 0, 3, 1);
-    //       filtered.H2.block(dst_row, dst_row, 3, 3)
-    //         = init_mats.H2.block(src_row, src_row, 3, 3);
-    //       dst_row += 3;
-    //     }
-
-    //     state_manager_.initMsckfSlamFeatures(state,
-    //                                          filtered,
-    //                                          correction,
-    //                                          sigma_img_);
-    //   }
-    //}
+    const size_t n_trks = new_msckf_slam_trks_.size();
+    const size_t n_out = msckf_slam_outlier_idxs.size();
+    const size_t n_in = n_trks - n_out;
+    const MsckfSlamMatrices& init_mats = msckf_slam_.getInitMats();
+    if (n_in > 0) {
+      state_manager_.initMsckfSlamFeatures(state,
+                                           init_mats,
+                                           correction,
+                                           sigma_img_);
+    }
   }
 
   // STANDARD SLAM feature initialization

@@ -58,31 +58,29 @@ void Updater::applyUpdate(State& state,
   const Matrix S = H * P * H.transpose() + R;
   const Matrix K = P * H.transpose() * S.inverse();
 
-  if (S.hasNaN() || S.norm() > 1.e3)
+  if (H.hasNaN())
   {
-    std::cout << "Invalid S matrix" << std::endl;
+    std::cout << "Error: H has NaN entries." << std::endl;
+    return;
+  }
+  else if (H.isZero())
+  {
+    std::cout << "Null H!" << std::endl;
+  }
+
+  if (S.hasNaN())
+  {
+    std::cout << "Error: S has NaN" << std::endl;
+    return;
+  }
+  else if (S.isZero()) {
+    std::cout << "Error: S is zero." << std::endl;
     return;
   }
 
   if (R.isZero())
   {
     std::cout << "R is zero!" << std::endl;
-  }
-  if (H.hasNaN())
-  {
-    std::cout << "Error: H has NaN entries." << std::endl;
-    return;
-  }
-
-  if (H.isZero())
-  {
-    std::cout << "Null H!" << std::endl;
-    return;
-  }
-
-  if (S.isZero()) {
-    std::cout << "Error: S is zero." << std::endl;
-    return;
   }
 
   Matrix correction = K * (res + H * correction_total) - correction_total;

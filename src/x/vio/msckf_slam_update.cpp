@@ -67,6 +67,15 @@ MsckfSlamUpdate::MsckfSlamUpdate(const x::TrackList& trks,
                     row_h,
                     row1);
   }
+
+  jac_.conservativeResize(row_h, cols);
+  cov_m_diag_.conservativeResize(row_h);
+  res_.conservativeResize(row_h, 1);
+
+  init_mats_.H1.conservativeResize(row1, cols);
+  init_mats_.H2.conservativeResize(row1, row1);
+  init_mats_.r1.conservativeResize(row1, 1);
+  init_mats_.features.conservativeResize(row1, 1);
 }
 
 void MsckfSlamUpdate::processOneTrack(const x::Track& track,
@@ -80,6 +89,9 @@ void MsckfSlamUpdate::processOneTrack(const x::Track& track,
                                       size_t& row_h,
                                       size_t& row1)
 {
+  static constexpr double kMinAbsRho = 1e-9;
+  static constexpr double kMinH2SigmaRatio = 1e-6;
+
   const size_t track_size = track.size();
   unsigned int rows_track_j = track_size * 2;
   const size_t cols = P.cols();
@@ -93,6 +105,12 @@ void MsckfSlamUpdate::processOneTrack(const x::Track& track,
   const double alpha = feature(0);
   const double beta  = feature(1);
   const double rho   = feature(2);
+
+  if (!feature.allFinite() || std::abs(rho) < kMinAbsRho)
+  {
+    outlier_track_idxs_.push_back(static_cast<unsigned int>(j));
+    return;
+  }
 
   // Anchor pose
   x::Quaternion Cn_q_G;
@@ -226,16 +244,26 @@ void MsckfSlamUpdate::processOneTrack(const x::Track& track,
 	const MatrixXd U = x::MatrixBlock(q, 0, 0, q.rows(), 3);
 
 	// Projections to be used in Core::CorrectAfterCoreCorrection
-	MatrixXd H1j = U.transpose() * h_j;
+  MatrixXd H1j = U.transpose() * h_j;
 	MatrixXd H2j = U.transpose() * Hf_j;
 	MatrixXd r1j = U.transpose() * res_j;
-  
-  init_mats_.H1.block(row1, 0, 3, cols) = H1j;
-	init_mats_.H2.block(row1, row1, 3, 3) = H2j;
-	init_mats_.r1.block(row1, 0, 3, 1)	= r1j;
-	init_mats_.features.block(row1, 0, 3, 1)= feature;
-	row1 += 3;
 
+  if (!H1j.allFinite() || !H2j.allFinite() || !r1j.allFinite())
+  {
+    outlier_track_idxs_.push_back(static_cast<unsigned int>(j));
+    return;
+  }
+
+  const JacobiSVD<MatrixXd> h2_svd(H2j, ComputeThinU | ComputeThinV);
+  const VectorXd& h2_singular_values = h2_svd.singularValues();
+  if (h2_singular_values.size() < 3
+      || h2_singular_values(0) <= 0.0
+      || h2_singular_values(2) <= kMinH2SigmaRatio * h2_singular_values(0))
+  {
+    outlier_track_idxs_.push_back(static_cast<unsigned int>(j));
+    return;
+  }
+  
   //==========================================================================
   // Outlier rejection
   //==========================================================================
@@ -249,6 +277,12 @@ void MsckfSlamUpdate::processOneTrack(const x::Track& track,
 #ifdef VERBOSE
     inliers_.push_back(G_p_fj);
 #endif
+
+    init_mats_.H1.block(row1, 0, 3, cols) = H1j;
+	  init_mats_.H2.block(row1, row1, 3, 3) = H2j;
+	  init_mats_.r1.block(row1, 0, 3, 1)	= r1j;
+	  init_mats_.features.block(row1, 0, 3, 1)= feature;
+	  row1 += 3;
 
     jac_.block(row_h,            // startRow
              0,                 // startCol

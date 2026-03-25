@@ -178,17 +178,26 @@ void StateManager::initMsckfSlamFeatures(State& state,
 	// Error covariance matrix
 	Matrix P = state.getCovariance();
 
+  if (init_mats.H2.rows() == 0)
+    return;
+
 	// Update feature state using Li (2012)
-  Matrix H2_inv;
-	const auto h2_lu = init_mats.H2.fullPivLu();
-  if (h2_lu.isInvertible())
+  Matrix H2_inv = Matrix::Zero(init_mats.H2.rows(), init_mats.H2.cols());
+  const size_t n_blocks = init_mats.H2.rows() / 3;
+  for (size_t i = 0; i < n_blocks; ++i)
   {
-	  H2_inv = h2_lu.inverse();
-  }
-  else
-  {
-    std::cout << "H2 matrix is singular, using pseudo-inverse" << std::endl;
-    H2_inv = init_mats.H2.completeOrthogonalDecomposition().pseudoInverse();
+    const size_t row = i * 3;
+    const Eigen::Matrix3d H2_block = init_mats.H2.block<3, 3>(row, row);
+    const auto h2_lu = H2_block.fullPivLu();
+    if (h2_lu.isInvertible())
+    {
+      H2_inv.block<3, 3>(row, row) = h2_lu.inverse();
+    }
+    else
+    {
+      H2_inv.block<3, 3>(row, row)
+        = H2_block.completeOrthogonalDecomposition().pseudoInverse();
+    }
   }
 
   if (H2_inv.norm() > 1000.0)
